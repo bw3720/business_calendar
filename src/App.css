@@ -1,0 +1,287 @@
+.app {
+  padding: 24px 16px 48px;
+}
+
+.app-header {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.app-header h1 {
+  font-size: 24px;
+  margin: 0 0 12px;
+}
+
+.month-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.month-label {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-h);
+  min-width: 110px;
+}
+
+.month-nav button {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-h);
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.month-nav button:hover {
+  background: var(--code-bg);
+}
+
+.loading,
+.error-banner {
+  text-align: center;
+}
+
+.error-banner {
+  color: #e05252;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.calendar-header {
+  margin-bottom: 4px;
+}
+
+.calendar-weekday {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text);
+  padding: 4px 0;
+}
+
+.calendar-weekday.sun {
+  color: #e05252;
+}
+.calendar-weekday.sat {
+  color: #3b82f6;
+}
+
+.calendar-cell {
+  aspect-ratio: 1;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  cursor: pointer;
+  font: inherit;
+  color: var(--text-h);
+  padding: 2px;
+  position: relative;
+}
+
+.calendar-cell.blank {
+  border: none;
+  cursor: default;
+}
+
+.calendar-cell:not(.blank):hover {
+  border-color: var(--accent-border);
+}
+
+.calendar-cell.business-day {
+  background: var(--accent-bg);
+}
+
+.calendar-cell.off-day .date-num {
+  color: var(--text);
+}
+
+.calendar-cell.sun .date-num {
+  color: #e05252;
+}
+.calendar-cell.sat .date-num {
+  color: #3b82f6;
+}
+
+.calendar-cell.has-override {
+  outline: 2px dashed var(--accent);
+  outline-offset: -2px;
+}
+
+.date-num {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.holiday-name {
+  font-size: 9px;
+  color: var(--text);
+  line-height: 1;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-border);
+}
+
+.status-dot.completed {
+  background: #22c55e;
+}
+
+.memo-dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #f59e0b;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 10;
+}
+
+.modal {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  width: 100%;
+  max-width: 360px;
+  text-align: left;
+}
+
+.modal h3 {
+  margin: 0 0 8px;
+  color: var(--text-h);
+}
+
+.holiday-label {
+  color: #e05252;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.auto-label {
+  font-size: 13px;
+  color: var(--text);
+  margin-bottom: 16px;
+}
+
+.field-group {
+  margin-bottom: 16px;
+}
+
+.field-group > label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-h);
+  margin-bottom: 6px;
+}
+
+.field-group textarea {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px;
+  background: var(--bg);
+  color: var(--text-h);
+  resize: vertical;
+}
+
+.segmented {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.segmented button {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 8px 4px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--text);
+  border-right: 1px solid var(--border);
+}
+
+.segmented button:last-child {
+  border-right: none;
+}
+
+.segmented button.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.btn-primary,
+.btn-secondary {
+  font: inherit;
+  border-radius: 6px;
+  padding: 8px 14px;
+  cursor: pointer;
+  border: 1px solid var(--border);
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  margin-left: 8px;
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text-h);
+}
+
+.setup-notice {
+  max-width: 480px;
+  margin: 48px auto;
+  padding: 0 16px;
+  text-align: left;
+}
+
+.setup-notice pre {
+  background: var(--code-bg);
+  padding: 12px;
+  border-radius: 8px;
+  overflow-x: auto;
+}
