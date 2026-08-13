@@ -1,8 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
 import Calendar from './components/Calendar'
 import DayEditor from './components/DayEditor'
+import Login from './components/Login'
 import { getMonthDays, toDateStr } from './lib/businessDays'
 import { getYearHolidays } from './lib/googleHolidays'
+import {
+  getStoredEmployeeId,
+  setStoredEmployeeId,
+  clearStoredEmployeeId,
+  verifyEmployeeId,
+} from './lib/employeeAuth'
 import { supabase } from './lib/supabaseClient'
 import './App.css'
 
@@ -15,6 +22,8 @@ function App() {
   const todayStr = toDateStr(today)
   const [year, setYear] = useState(today.getFullYear())
   const [month, setMonth] = useState(today.getMonth())
+  const [employeeId, setEmployeeId] = useState(getStoredEmployeeId())
+  const [employeeName, setEmployeeName] = useState(null)
   const [overridesByDate, setOverridesByDate] = useState({})
   const [holidaysByDate, setHolidaysByDate] = useState({})
   const [recurringTasks, setRecurringTasks] = useState([])
@@ -25,13 +34,27 @@ function App() {
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    if (!isConfigured) return
+    if (!isConfigured || !employeeId || employeeName) return
+    let cancelled = false
+    verifyEmployeeId(employeeId).then((employee) => {
+      if (!cancelled && employee) setEmployeeName(employee.name)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [employeeId, employeeName])
+
+  useEffect(() => {
+    if (!isConfigured || !employeeId) return
     let cancelled = false
 
     async function load() {
       setLoading(true)
       try {
-        const { data, error } = await supabase.from('day_status').select('*')
+        const { data, error } = await supabase
+          .from('day_status')
+          .select('*')
+          .eq('employee_id', employeeId)
         if (cancelled) return
         if (error) {
           setError(error.message)
@@ -52,7 +75,7 @@ function App() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [employeeId])
 
   useEffect(() => {
     let cancelled = false
@@ -75,13 +98,16 @@ function App() {
   }, [year])
 
   useEffect(() => {
-    if (!isConfigured) return
+    if (!isConfigured || !employeeId) return
     let cancelled = false
 
     async function loadRecurring() {
       setRecurringLoading(true)
       try {
-        const { data, error } = await supabase.from('recurring_tasks').select('*')
+        const { data, error } = await supabase
+          .from('recurring_tasks')
+          .select('*')
+          .eq('employee_id', employeeId)
         if (cancelled) return
         if (error) {
           setError(error.message)
@@ -98,7 +124,7 @@ function App() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [employeeId])
 
   const recurringByIndex = useMemo(() => {
     const map = {}
@@ -141,7 +167,7 @@ function App() {
   }
 
   const handleSave = async (dateStr, { override, completed, memo }) => {
-    const row = { date: dateStr, override, completed, memo }
+    const row = { employee_id: employeeId, date: dateStr, override, completed, memo }
     setOverridesByDate((prev) => ({ ...prev, [dateStr]: row }))
     const { error } = await supabase.from('day_status').upsert(row)
     if (error) setError(error.message)
@@ -153,14 +179,18 @@ function App() {
       delete next[dateStr]
       return next
     })
-    const { error } = await supabase.from('day_status').delete().eq('date', dateStr)
+    const { error } = await supabase
+      .from('day_status')
+      .delete()
+      .eq('employee_id', employeeId)
+      .eq('date', dateStr)
     if (error) setError(error.message)
   }
 
   const handleAddRecurring = async (nthBusinessDay, title) => {
     const { data, error } = await supabase
       .from('recurring_tasks')
-      .insert({ nth_business_day: nthBusinessDay, title })
+      .insert({ employee_id: employeeId, nth_business_day: nthBusinessDay, title })
       .select()
       .single()
     if (error) {
@@ -172,8 +202,26 @@ function App() {
 
   const handleDeleteRecurring = async (id) => {
     setRecurringTasks((prev) => prev.filter((task) => task.id !== id))
-    const { error } = await supabase.from('recurring_tasks').delete().eq('id', id)
+    const { error } = await supabase
+      .from('recurring_tasks')
+      .delete()
+      .eq('employee_id', employeeId)
+      .eq('id', id)
     if (error) setError(error.message)
+  }
+
+  const handleLogin = (id, name) => {
+    setStoredEmployeeId(id)
+    setEmployeeId(id)
+    setEmployeeName(name)
+  }
+
+  const handleLogout = () => {
+    clearStoredEmployeeId()
+    setEmployeeId(null)
+    setEmployeeName(null)
+    setOverridesByDate({})
+    setRecurringTasks([])
   }
 
   if (!isConfigured) {
@@ -193,10 +241,20 @@ function App() {
     )
   }
 
+  if (!employeeId) {
+    return <Login onLogin={handleLogin} />
+  }
+
   return (
     <div className="app">
       <header className="app-header">
         <h1>영업일 캘린더</h1>
+        <div className="user-bar">
+          <span>{employeeName ?? employeeId}님</span>
+          <button className="btn-secondary" onClick={handleLogout}>
+            로그아웃
+          </button>
+        </div>
         <div className="month-nav">
           <button onClick={goPrevMonth}>◀</button>
           <span className="month-label">

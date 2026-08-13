@@ -1,9 +1,10 @@
 # 영업일 캘린더
 
-평일에서 한국 공휴일을 자동으로 제외해 영업일을 계산하고, 특정 영업일에 어떤 업무가 있는지 미리 입력해두면 캘린더에서 계속 보여주는 개인용 웹 캘린더. 필요하면 특정 날짜를 수동으로 영업일/휴무일로 강제 지정할 수도 있다.
+평일에서 한국 공휴일을 자동으로 제외해 영업일을 계산하고, 특정 영업일에 어떤 업무가 있는지 미리 입력해두면 캘린더에서 계속 보여주는 팀용 웹 캘린더. 사번으로 로그인해 팀원별로 캘린더가 분리되며, 필요하면 특정 날짜를 수동으로 영업일/휴무일로 강제 지정할 수도 있다.
 
 ## 기능
 
+- **사번 로그인**: 사번만 입력하면 입장, 팀원마다 자신의 캘린더(메모/반복 업무)를 독립적으로 관리
 - **자동 영업일 계산**: Google Calendar API의 대한민국 공휴일 캘린더로 주말 + 공휴일을 자동 제외
 - **수동 override**: 특정 날짜를 영업일 ↔ 휴무일로 강제 지정 가능 (자동 계산 무시)
 - **업무 메모 표시**: 날짜별로 입력한 업무 메모가 hover 없이 달력 칸에 바로 노출되어, 그날 무슨 일을 해야 하는지 한눈에 확인 가능
@@ -18,7 +19,7 @@
 
 - **프론트엔드**: React 19 + Vite
 - **공휴일 조회**: [Google Calendar API](https://developers.google.com/calendar/api) (대한민국 공휴일 공개 캘린더)
-- **데이터 저장**: [Supabase](https://supabase.com) (`day_status`, `recurring_tasks` 테이블, anon key 기반)
+- **데이터 저장**: [Supabase](https://supabase.com) (`employees`, `day_status`, `recurring_tasks` 테이블, anon key 기반)
 - **배포**: GitHub Pages (GitHub Actions로 자동 빌드/배포)
 - **린트**: oxlint
 
@@ -26,21 +27,23 @@
 
 ```
 src/
-├── App.jsx                # 최상위 상태 관리 (월/연도, override 데이터, 로딩/에러)
+├── App.jsx                # 최상위 상태 관리 (로그인 상태, 월/연도, override 데이터, 로딩/에러)
 ├── components/
 │   ├── Calendar.jsx        # 월 달력 그리드 렌더링
-│   └── DayEditor.jsx       # 날짜 클릭 시 뜨는 편집 모달 (override/완료/메모/반복 업무)
+│   ├── DayEditor.jsx       # 날짜 클릭 시 뜨는 편집 모달 (override/완료/메모/반복 업무)
+│   └── Login.jsx           # 사번 입력 로그인 화면
 ├── lib/
 │   ├── businessDays.js     # 영업일 자동 계산 로직 (주말+공휴일 판정, override 병합, 영업일 순번 계산)
+│   ├── employeeAuth.js     # 사번 로그인 상태(localStorage) 관리, 사번 존재 여부 조회
 │   ├── googleHolidays.js   # Google Calendar API로 연도별 한국 공휴일 조회 (연도 단위 캐시)
 │   └── supabaseClient.js   # Supabase 클라이언트 초기화
 └── main.jsx
-supabase.sql                # day_status, recurring_tasks 테이블 + RLS 정책 생성 SQL
+supabase.sql                # employees, day_status, recurring_tasks 테이블 + RLS 정책 생성 SQL
 ```
 
 ## 로컬 개발
 
-1. Supabase 프로젝트를 만들고 SQL Editor에서 `supabase.sql`을 실행해 `day_status`, `recurring_tasks` 테이블을 생성한다.
+1. Supabase 프로젝트를 만들고 SQL Editor에서 `supabase.sql`을 실행해 `employees`, `day_status`, `recurring_tasks` 테이블을 생성한다. **이 스크립트는 기존 `day_status`/`recurring_tasks` 데이터를 모두 삭제하니 재실행 시 주의.** 실행 후 `employees` 테이블에 로그인을 허용할 사번을 직접 추가한다 (예: `insert into employees (employee_id, name) values ('10001', '홍길동');`).
 2. [Google Cloud Console](https://console.cloud.google.com/apis/credentials)에서 프로젝트를 만들고 **Google Calendar API**를 활성화한 뒤 API 키를 발급받는다. 키는 "API 제한사항"에서 Calendar API로, "애플리케이션 제한사항"에서 사용할 도메인(HTTP 리퍼러)으로 제한해두는 것을 권장한다.
 3. `.env.example`을 `.env.local`로 복사하고 Supabase URL/anon key, Google Calendar API 키를 채운다.
 4. 의존성 설치 후 개발 서버 실행:
@@ -49,6 +52,10 @@ supabase.sql                # day_status, recurring_tasks 테이블 + RLS 정책
    npm install
    npm run dev
    ```
+
+## 팀원 관리
+
+로그인은 사번 입력만으로 이루어지며(비밀번호 없음), 앱에는 별도 가입 기능이 없다. 새 팀원을 추가하려면 Supabase 대시보드 → Table Editor → `employees` 테이블에서 직접 행을 추가한다 (`employee_id`, `name`). 반대로 접근을 막으려면 해당 행을 삭제하면 된다.
 
 ## GitHub Pages 배포
 
@@ -60,7 +67,9 @@ supabase.sql                # day_status, recurring_tasks 테이블 + RLS 정책
 
 ## 보안 참고
 
-인증 없이 anon key만으로 Supabase에 접근하는 구조라, anon key가 포함된 배포 번들 URL을 아는 사람은 누구나 데이터를 읽고 쓸 수 있다. 개인 전용 도구로 쓰는 것을 전제로 한 트레이드오프이며, `supabase.sql`의 RLS 정책이 이를 명시하고 있다.
+인증 없이 anon key만으로 Supabase에 접근하는 구조라, anon key가 포함된 배포 번들 URL을 아는 사람은 누구나 데이터를 읽고 쓸 수 있다. `supabase.sql`의 RLS 정책이 이를 명시하고 있다.
+
+사번 로그인에는 비밀번호가 없다. 즉 anon key와 다른 사람의 사번을 아는 사람은 이 앱을 통해 그 사람 이름으로 데이터를 읽거나 고칠 수 있다 — 팀 내부에서 신뢰를 전제로 쓰는 가벼운 도구인 것을 감안한 의도적인 단순화이며, 실제 사내 인증 연동이 필요하면 Supabase Auth 등 정식 인증으로 교체해야 한다.
 
 Google Calendar API 키도 빌드 번들에 그대로 노출된다. Google Cloud Console에서 Calendar API 전용으로, 배포 도메인 리퍼러로 제한해두면 다른 용도로 악용되는 것을 막을 수 있다.
 
