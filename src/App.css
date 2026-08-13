@@ -1,39 +1,46 @@
 .app {
-  padding: 24px 16px 48px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 24px 24px;
+  overflow: hidden;
 }
 
 .app-header {
+  flex: none;
   text-align: center;
   margin-bottom: 16px;
 }
 
 .app-header h1 {
-  font-size: 24px;
-  margin: 0 0 12px;
+  font-size: 30px;
+  margin: 0 0 16px;
 }
 
 .month-nav {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .month-label {
-  font-size: 16px;
+  font-size: 19px;
   font-weight: 600;
   color: var(--text-h);
-  min-width: 110px;
+  min-width: 130px;
 }
 
 .month-nav button {
   border: 1px solid var(--border);
   background: transparent;
   color: var(--text-h);
-  border-radius: 6px;
-  padding: 6px 10px;
+  border-radius: 8px;
+  padding: 8px 14px;
   cursor: pointer;
   font: inherit;
+  font-size: 15px;
 }
 
 .month-nav button:hover {
@@ -46,22 +53,45 @@
 }
 
 .error-banner {
+  flex: none;
   color: #e05252;
+  margin-bottom: 8px;
+}
+
+.calendar-area {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.calendar {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
+  gap: 8px;
 }
 
 .calendar-header {
-  margin-bottom: 4px;
+  flex: none;
+  margin-bottom: 8px;
+}
+
+.calendar-body {
+  flex: 1;
+  min-height: 0;
 }
 
 .calendar-weekday {
   text-align: center;
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 600;
   color: var(--text);
   padding: 4px 0;
 }
@@ -74,20 +104,23 @@
 }
 
 .calendar-cell {
-  aspect-ratio: 1;
+  width: 100%;
+  height: 100%;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--bg);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 3px;
   cursor: pointer;
   font: inherit;
   color: var(--text-h);
-  padding: 2px;
+  padding: 4px;
+  overflow: hidden;
   position: relative;
+  transition: border-color 0.15s ease;
 }
 
 .calendar-cell.blank {
@@ -119,15 +152,33 @@
   outline-offset: -2px;
 }
 
+.calendar-cell.today {
+  border: 2px solid var(--accent);
+}
+
+.calendar-cell.today::before {
+  content: '오늘';
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: var(--accent);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.5;
+  padding: 0 5px;
+  border-radius: 8px 0 8px 0;
+}
+
 .date-num {
-  font-size: 14px;
+  font-size: 17px;
   font-weight: 600;
 }
 
 .holiday-name {
-  font-size: 9px;
+  font-size: 10px;
   color: var(--text);
-  line-height: 1;
+  line-height: 1.2;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -135,8 +186,8 @@
 }
 
 .status-dot {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: var(--accent-border);
 }
@@ -145,14 +196,21 @@
   background: #22c55e;
 }
 
-.memo-dot {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: #f59e0b;
+.d-day {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent-border);
+  line-height: 1.2;
+}
+
+.memo-text {
+  font-size: 10px;
+  color: #f59e0b;
+  line-height: 1.3;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .modal-backdrop {
@@ -169,10 +227,10 @@
 .modal {
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 20px;
+  border-radius: 14px;
+  padding: 24px;
   width: 100%;
-  max-width: 360px;
+  max-width: 420px;
   text-align: left;
 }
 
@@ -215,6 +273,51 @@
   background: var(--bg);
   color: var(--text-h);
   resize: vertical;
+}
+
+.recurring-list {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.recurring-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  background: var(--code-bg);
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+
+.recurring-remove {
+  border: none;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  line-height: 1;
+}
+
+.recurring-add {
+  display: flex;
+  gap: 6px;
+}
+
+.recurring-add input {
+  flex: 1;
+  box-sizing: border-box;
+  font: inherit;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px;
+  background: var(--bg);
+  color: var(--text-h);
 }
 
 .segmented {

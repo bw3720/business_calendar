@@ -1,9 +1,18 @@
 import { useState } from 'react'
 
-export default function DayEditor({ day, onClose, onSave, onDelete }) {
+export default function DayEditor({
+  day,
+  recurringTasks,
+  onClose,
+  onSave,
+  onDelete,
+  onAddRecurring,
+  onDeleteRecurring,
+}) {
   const [override, setOverride] = useState(day.override)
   const [completed, setCompleted] = useState(day.completed)
   const [memo, setMemo] = useState(day.memo)
+  const [newRecurringTitle, setNewRecurringTitle] = useState('')
 
   const effectiveBusinessDay = override === null ? day.autoBusinessDay : override
 
@@ -15,6 +24,13 @@ export default function DayEditor({ day, onClose, onSave, onDelete }) {
   const handleReset = () => {
     onDelete(day.dateStr)
     onClose()
+  }
+
+  const handleAddRecurring = () => {
+    const title = newRecurringTitle.trim()
+    if (!title) return
+    onAddRecurring(day.businessDayIndex, title)
+    setNewRecurringTitle('')
   }
 
   return (
@@ -74,6 +90,41 @@ export default function DayEditor({ day, onClose, onSave, onDelete }) {
             rows={3}
           />
         </div>
+
+        {day.businessDayIndex !== null && (
+          <div className="field-group">
+            <label>매달 {day.businessDayIndex}번째 영업일마다 반복</label>
+            {recurringTasks.length > 0 && (
+              <ul className="recurring-list">
+                {recurringTasks.map((task) => (
+                  <li key={task.id}>
+                    <span>{task.title}</span>
+                    <button
+                      type="button"
+                      className="recurring-remove"
+                      onClick={() => onDeleteRecurring(task.id)}
+                      aria-label="반복 업무 삭제"
+                    >
+                      ✕
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="recurring-add">
+              <input
+                type="text"
+                value={newRecurringTitle}
+                onChange={(e) => setNewRecurringTitle(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddRecurring()}
+                placeholder="예: 전문 발송"
+              />
+              <button type="button" className="btn-secondary" onClick={handleAddRecurring}>
+                추가
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="modal-actions">
           <button className="btn-secondary" onClick={handleReset}>

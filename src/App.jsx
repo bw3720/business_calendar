@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import Calendar from './components/Calendar'
 import DayEditor from './components/DayEditor'
-import { getMonthDays } from './lib/businessDays'
+import { getMonthDays, toDateStr } from './lib/businessDays'
+import { getYearHolidays } from './lib/googleHolidays'
 import { supabase } from './lib/supabaseClient'
 import './App.css'
 
@@ -11,11 +12,16 @@ const isConfigured = Boolean(
 
 function App() {
   const today = new Date()
+  const todayStr = toDateStr(today)
   const [year, setYear] = useState(today.getFullYear())
   const [month, setMonth] = useState(today.getMonth())
   const [overridesByDate, setOverridesByDate] = useState({})
+  const [holidaysByDate, setHolidaysByDate] = useState({})
+  const [recurringTasks, setRecurringTasks] = useState([])
   const [selectedDay, setSelectedDay] = useState(null)
   const [loading, setLoading] = useState(isConfigured)
+  const [holidaysLoading, setHolidaysLoading] = useState(true)
+  const [recurringLoading, setRecurringLoading] = useState(isConfigured)
   const [error, setError] = useState(null)
 
   useEffect(() => {
@@ -48,10 +54,68 @@ function App() {
     }
   }, [])
 
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadHolidays() {
+      setHolidaysLoading(true)
+      try {
+        const map = await getYearHolidays(year)
+        if (!cancelled) setHolidaysByDate(map)
+      } catch (err) {
+        if (!cancelled) setError(err.message)
+      }
+      if (!cancelled) setHolidaysLoading(false)
+    }
+
+    loadHolidays()
+    return () => {
+      cancelled = true
+    }
+  }, [year])
+
+  useEffect(() => {
+    if (!isConfigured) return
+    let cancelled = false
+
+    async function loadRecurring() {
+      setRecurringLoading(true)
+      try {
+        const { data, error } = await supabase.from('recurring_tasks').select('*')
+        if (cancelled) return
+        if (error) {
+          setError(error.message)
+        } else {
+          setRecurringTasks(data)
+        }
+      } catch (err) {
+        if (!cancelled) setError(err.message)
+      }
+      if (!cancelled) setRecurringLoading(false)
+    }
+
+    loadRecurring()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const recurringByIndex = useMemo(() => {
+    const map = {}
+    for (const task of recurringTasks) {
+      ;(map[task.nth_business_day] ??= []).push(task)
+    }
+    return map
+  }, [recurringTasks])
+
   const days = useMemo(
-    () => getMonthDays(year, month, overridesByDate),
-    [year, month, overridesByDate],
+    () => getMonthDays(year, month, overridesByDate, holidaysByDate, recurringByIndex),
+    [year, month, overridesByDate, holidaysByDate, recurringByIndex],
   )
+
+  const selectedRecurringTasks = selectedDay
+    ? (recurringByIndex[selectedDay.businessDayIndex] ?? [])
+    : []
 
   const goPrevMonth = () => {
     if (month === 0) {
@@ -93,6 +157,25 @@ function App() {
     if (error) setError(error.message)
   }
 
+  const handleAddRecurring = async (nthBusinessDay, title) => {
+    const { data, error } = await supabase
+      .from('recurring_tasks')
+      .insert({ nth_business_day: nthBusinessDay, title })
+      .select()
+      .single()
+    if (error) {
+      setError(error.message)
+      return
+    }
+    setRecurringTasks((prev) => [...prev, data])
+  }
+
+  const handleDeleteRecurring = async (id) => {
+    setRecurringTasks((prev) => prev.filter((task) => task.id !== id))
+    const { error } = await supabase.from('recurring_tasks').delete().eq('id', id)
+    if (error) setError(error.message)
+  }
+
   if (!isConfigured) {
     return (
       <div className="setup-notice">
@@ -127,18 +210,29 @@ function App() {
       </header>
 
       {error && <p className="error-banner">오류: {error}</p>}
-      {loading ? (
-        <p className="loading">불러오는 중...</p>
-      ) : (
-        <Calendar year={year} month={month} days={days} onDayClick={setSelectedDay} />
-      )}
+      <div className="calendar-area">
+        {loading || holidaysLoading || recurringLoading ? (
+          <p className="loading">불러오는 중...</p>
+        ) : (
+          <Calendar
+            year={year}
+            month={month}
+            days={days}
+            todayStr={todayStr}
+            onDayClick={setSelectedDay}
+          />
+        )}
+      </div>
 
       {selectedDay && (
         <DayEditor
           day={selectedDay}
+          recurringTasks={selectedRecurringTasks}
           onClose={() => setSelectedDay(null)}
           onSave={handleSave}
           onDelete={handleDelete}
+          onAddRecurring={handleAddRecurring}
+          onDeleteRecurring={handleDeleteRecurring}
         />
       )}
     </div>

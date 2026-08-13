@@ -18,3 +18,19 @@ create policy "anon full access" on day_status
   to anon
   using (true)
   with check (true);
+
+-- 매달 반복되는 업무 (예: "매달 5번째 영업일마다 전문 발송")
+create table if not exists recurring_tasks (
+  id uuid primary key default gen_random_uuid(),
+  nth_business_day int not null check (nth_business_day > 0),
+  title text not null,
+  created_at timestamptz not null default now()
+);
+
+alter table recurring_tasks enable row level security;
+
+create policy "anon full access" on recurring_tasks
+  for all
+  to anon
+  using (true)
+  with check (true);
