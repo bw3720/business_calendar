@@ -1,52 +1,46 @@
 :root {
-  --text: #64707c;
-  --text-h: #0f172a;
-  --bg: #fff;
-  --border: #e2e5e9;
-  --code-bg: #f3f5f7;
-  --accent: #0d9488;
-  --accent-bg: rgba(13, 148, 136, 0.08);
-  --accent-border: rgba(13, 148, 136, 0.45);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  color-scheme: light;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  --canvas: #f5f3ee;
+  --surface: #ffffff;
+  --text-h: #14171c;
+  --text: #6b7280;
+  --text-soft: #9ca3af;
+  --border: #e7e3db;
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
+  --accent: #0f7a6c;
+  --accent-strong: #0b5f54;
+  --accent-bg: #e7f5f1;
+  --accent-border: #4fae9c;
+
+  --sun: #e2482e;
+  --sat: #3552d6;
+  --amber: #c2740c;
+  --done: #1e9e6b;
+
+  --shadow-sm: 0 1px 2px rgba(20, 23, 28, 0.05);
+  --shadow-md:
+    0 10px 24px -8px rgba(20, 23, 28, 0.12), 0 2px 6px rgba(20, 23, 28, 0.05);
+  --shadow-lg: 0 24px 48px -16px rgba(20, 23, 28, 0.22);
+
+  --sans:
+    -apple-system, BlinkMacSystemFont, 'Pretendard Variable', Pretendard,
+    'Apple SD Gothic Neo', system-ui, 'Segoe UI', Roboto, 'Malgun Gothic',
+    sans-serif;
+  --heading: var(--sans);
+  --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  font: 16px/1.55 var(--sans);
+  letter-spacing: 0.1px;
   color: var(--text);
-  background: var(--bg);
+  background: var(--canvas);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
   @media (max-width: 1024px) {
-    font-size: 16px;
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #2dd4bf;
-    --accent-bg: rgba(45, 212, 191, 0.14);
-    --accent-border: rgba(45, 212, 191, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
+    font-size: 15px;
   }
 }
 
@@ -56,12 +50,11 @@ body {
 
 #root {
   width: 100%;
-  max-width: 760px;
-  margin: 0 auto;
   height: 100svh;
   display: flex;
-  flex-direction: column;
+  justify-content: center;
   box-sizing: border-box;
+  padding: 20px;
   overflow: hidden;
 }
 
@@ -73,38 +66,41 @@ h2 {
 }
 
 h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
+  font-size: 40px;
+  letter-spacing: -0.8px;
   margin: 32px 0;
   @media (max-width: 1024px) {
-    font-size: 36px;
+    font-size: 30px;
     margin: 20px 0;
   }
 }
 h2 {
-  font-size: 24px;
+  font-size: 22px;
   line-height: 118%;
-  letter-spacing: -0.24px;
+  letter-spacing: -0.2px;
   margin: 0 0 8px;
   @media (max-width: 1024px) {
-    font-size: 20px;
+    font-size: 19px;
   }
 }
 p {
   margin: 0;
 }
 
-code,
-.counter {
+code {
   font-family: var(--mono);
   display: inline-flex;
   border-radius: 4px;
   color: var(--text-h);
-}
-
-code {
   font-size: 15px;
   line-height: 135%;
   padding: 4px 8px;
-  background: var(--code-bg);
+  background: var(--canvas);
+}
+
+input[type='checkbox'],
+input[type='radio'] {
+  accent-color: var(--accent);
+  width: 16px;
+  height: 16px;
 }

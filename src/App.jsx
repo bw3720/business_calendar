@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Calendar from './components/Calendar'
 import DayEditor from './components/DayEditor'
 import Login from './components/Login'
+import TodayTodo from './components/TodayTodo'
 import { getMonthDays, toDateStr } from './lib/businessDays'
 import { getYearHolidays } from './lib/googleHolidays'
 import {
@@ -26,6 +27,7 @@ function App() {
   const [employeeName, setEmployeeName] = useState(null)
   const [overridesByDate, setOverridesByDate] = useState({})
   const [holidaysByDate, setHolidaysByDate] = useState({})
+  const [todayHolidaysByDate, setTodayHolidaysByDate] = useState({})
   const [recurringTasks, setRecurringTasks] = useState([])
   const [selectedDay, setSelectedDay] = useState(null)
   const [loading, setLoading] = useState(isConfigured)
@@ -98,6 +100,23 @@ function App() {
   }, [year])
 
   useEffect(() => {
+    let cancelled = false
+
+    getYearHolidays(today.getFullYear())
+      .then((map) => {
+        if (!cancelled) setTodayHolidaysByDate(map)
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message)
+      })
+
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
     if (!isConfigured || !employeeId) return
     let cancelled = false
 
@@ -139,6 +158,18 @@ function App() {
     [year, month, overridesByDate, holidaysByDate, recurringByIndex],
   )
 
+  const todayDayData = useMemo(() => {
+    const monthDays = getMonthDays(
+      today.getFullYear(),
+      today.getMonth(),
+      overridesByDate,
+      todayHolidaysByDate,
+      recurringByIndex,
+    )
+    return monthDays.find((d) => d.dateStr === todayStr) ?? null
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [overridesByDate, todayHolidaysByDate, recurringByIndex, todayStr])
+
   const selectedRecurringTasks = selectedDay
     ? (recurringByIndex[selectedDay.businessDayIndex] ?? [])
     : []
@@ -171,6 +202,15 @@ function App() {
     setOverridesByDate((prev) => ({ ...prev, [dateStr]: row }))
     const { error } = await supabase.from('day_status').upsert(row)
     if (error) setError(error.message)
+  }
+
+  const handleToggleTodayComplete = () => {
+    if (!todayDayData) return
+    handleSave(todayStr, {
+      override: todayDayData.override,
+      completed: !todayDayData.completed,
+      memo: todayDayData.memo,
+    })
   }
 
   const handleDelete = async (dateStr) => {
@@ -268,6 +308,15 @@ function App() {
       </header>
 
       {error && <p className="error-banner">오류: {error}</p>}
+
+      {!loading && !recurringLoading && (
+        <TodayTodo
+          day={todayDayData}
+          onToggleComplete={handleToggleTodayComplete}
+          onEdit={() => setSelectedDay(todayDayData)}
+        />
+      )}
+
       <div className="calendar-area">
         {loading || holidaysLoading || recurringLoading ? (
           <p className="loading">불러오는 중...</p>

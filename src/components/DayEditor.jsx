@@ -82,7 +82,7 @@ export default function DayEditor({
         )}
 
         <div className="field-group">
-          <label htmlFor="memo">메모</label>
+          <label htmlFor="memo">할 일</label>
           <textarea
             id="memo"
             value={memo}
@@ -93,7 +93,7 @@ export default function DayEditor({
 
         {day.businessDayIndex !== null && (
           <div className="field-group">
-            <label>매달 {day.businessDayIndex}번째 영업일마다 반복</label>
+            <label>매달 {day.businessDayIndex}번째 영업일 반복 업무</label>
             {recurringTasks.length > 0 && (
               <ul className="recurring-list">
                 {recurringTasks.map((task) => (

@@ -49,9 +49,15 @@ export default function Calendar({ year, month, days, todayStr, onDayClick }) {
               {taskItems.length > 0 && (
                 <>
                   <span className="d-day">D+{day.businessDayIndex}</span>
-                  <span className="memo-text" title={taskItems.join('\n')}>
+                  <span className="memo-text">
                     {taskItems[0]}
                     {taskItems.length > 1 && ` +${taskItems.length - 1}`}
+                  </span>
+                  <span className="cell-tooltip">
+                    업무 {taskItems.length}건
+                    {taskItems.map((item, i) => (
+                      <div key={i}>{item}</div>
+                    ))}
                   </span>
                 </>
               )}
