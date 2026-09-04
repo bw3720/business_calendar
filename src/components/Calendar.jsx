@@ -18,7 +18,7 @@ export default function Calendar({ year, month, days, todayStr, onDayClick }) {
       </div>
       <div
         className="calendar-grid calendar-body"
-        style={{ gridTemplateRows: `repeat(${numRows}, 1fr)` }}
+        style={{ gridTemplateRows: `repeat(${numRows}, minmax(0, 1fr))` }}
       >
         {Array.from({ length: leadingBlanks }).map((_, i) => (
           <div key={`blank-${i}`} className="calendar-cell blank" />

@@ -236,7 +236,7 @@
 
 .calendar-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -691,4 +691,34 @@
   padding: 12px;
   border-radius: 8px;
   overflow-x: auto;
+}
+
+@media (max-width: 640px) {
+  .app {
+    height: auto;
+    overflow: visible;
+    padding: 20px 16px;
+  }
+
+  .app-header h1 {
+    font-size: 18px;
+  }
+
+  .month-label {
+    font-size: 14px;
+    min-width: 100px;
+  }
+
+  .calendar-area,
+  .calendar,
+  .calendar-body {
+    flex: none;
+    min-height: 0;
+  }
+
+  .calendar-cell {
+    height: auto;
+    min-height: 44px;
+    padding: 6px 4px;
+  }
 }
