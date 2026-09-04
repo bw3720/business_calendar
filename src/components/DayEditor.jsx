@@ -82,7 +82,7 @@ export default function DayEditor({
         )}
 
         <div className="field-group">
-          <label htmlFor="memo">할 일</label>
+          <label htmlFor="memo">메모</label>
           <textarea
             id="memo"
             value={memo}
