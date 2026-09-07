@@ -196,6 +196,10 @@
 }
 
 .today-todo-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   font-size: 13px;
   color: var(--text-h);
   background: var(--canvas);
@@ -203,21 +207,25 @@
   padding: 7px 11px;
 }
 
+.today-todo-list li.done span {
+  color: var(--text-soft);
+  text-decoration: line-through;
+}
+
+.today-todo-list li.today-todo-memo {
+  color: var(--text);
+}
+
+.today-todo-item-check {
+  display: flex;
+  cursor: pointer;
+  flex: none;
+}
+
 .today-todo-empty {
   font-size: 13px;
   color: var(--text-soft);
   margin: 0;
-}
-
-.today-todo-complete {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-h);
-  margin-top: 12px;
-  cursor: pointer;
 }
 
 .calendar-area {

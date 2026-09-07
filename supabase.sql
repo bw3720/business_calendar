@@ -3,6 +3,7 @@
 -- 기존에 저장된 데이터(메모, 반복 업무 등)는 모두 삭제됩니다.
 
 drop table if exists day_status;
+drop table if exists recurring_task_completions;
 drop table if exists recurring_tasks;
 drop table if exists employees;
 
@@ -56,6 +57,25 @@ create table recurring_tasks (
 alter table recurring_tasks enable row level security;
 
 create policy "anon full access" on recurring_tasks
+  for all
+  to anon
+  using (true)
+  with check (true);
+
+-- 반복 업무는 매달 재사용되는 템플릿이라 그 자체에는 완료 여부를 저장할 수 없다.
+-- 그래서 (반복 업무, 날짜) 조합별로 완료 여부를 따로 기록한다.
+create table recurring_task_completions (
+  recurring_task_id uuid not null references recurring_tasks(id) on delete cascade,
+  employee_id text not null references employees(employee_id),
+  date date not null,
+  completed boolean not null default false,
+  updated_at timestamptz not null default now(),
+  primary key (recurring_task_id, date)
+);
+
+alter table recurring_task_completions enable row level security;
+
+create policy "anon full access" on recurring_task_completions
   for all
   to anon
   using (true)

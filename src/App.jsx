@@ -29,6 +29,7 @@ function App() {
   const [holidaysByDate, setHolidaysByDate] = useState({})
   const [todayHolidaysByDate, setTodayHolidaysByDate] = useState({})
   const [recurringTasks, setRecurringTasks] = useState([])
+  const [taskCompletionsByKey, setTaskCompletionsByKey] = useState({})
   const [selectedDay, setSelectedDay] = useState(null)
   const [loading, setLoading] = useState(isConfigured)
   const [holidaysLoading, setHolidaysLoading] = useState(true)
@@ -145,6 +146,37 @@ function App() {
     }
   }, [employeeId])
 
+  useEffect(() => {
+    if (!isConfigured || !employeeId) return
+    let cancelled = false
+
+    async function loadTaskCompletions() {
+      try {
+        const { data, error } = await supabase
+          .from('recurring_task_completions')
+          .select('*')
+          .eq('employee_id', employeeId)
+        if (cancelled) return
+        if (error) {
+          setError(error.message)
+        } else {
+          const map = {}
+          for (const row of data) {
+            map[`${row.recurring_task_id}_${row.date}`] = row.completed
+          }
+          setTaskCompletionsByKey(map)
+        }
+      } catch (err) {
+        if (!cancelled) setError(err.message)
+      }
+    }
+
+    loadTaskCompletions()
+    return () => {
+      cancelled = true
+    }
+  }, [employeeId])
+
   const recurringByIndex = useMemo(() => {
     const map = {}
     for (const task of recurringTasks) {
@@ -154,8 +186,16 @@ function App() {
   }, [recurringTasks])
 
   const days = useMemo(
-    () => getMonthDays(year, month, overridesByDate, holidaysByDate, recurringByIndex),
-    [year, month, overridesByDate, holidaysByDate, recurringByIndex],
+    () =>
+      getMonthDays(
+        year,
+        month,
+        overridesByDate,
+        holidaysByDate,
+        recurringByIndex,
+        taskCompletionsByKey,
+      ),
+    [year, month, overridesByDate, holidaysByDate, recurringByIndex, taskCompletionsByKey],
   )
 
   const todayDayData = useMemo(() => {
@@ -165,10 +205,11 @@ function App() {
       overridesByDate,
       todayHolidaysByDate,
       recurringByIndex,
+      taskCompletionsByKey,
     )
     return monthDays.find((d) => d.dateStr === todayStr) ?? null
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [overridesByDate, todayHolidaysByDate, recurringByIndex, todayStr])
+  }, [overridesByDate, todayHolidaysByDate, recurringByIndex, taskCompletionsByKey, todayStr])
 
   const selectedRecurringTasks = selectedDay
     ? (recurringByIndex[selectedDay.businessDayIndex] ?? [])
@@ -204,13 +245,16 @@ function App() {
     if (error) setError(error.message)
   }
 
-  const handleToggleTodayComplete = () => {
-    if (!todayDayData) return
-    handleSave(todayStr, {
-      override: todayDayData.override,
-      completed: !todayDayData.completed,
-      memo: todayDayData.memo,
+  const handleToggleTaskComplete = async (taskId, dateStr, nextCompleted) => {
+    const key = `${taskId}_${dateStr}`
+    setTaskCompletionsByKey((prev) => ({ ...prev, [key]: nextCompleted }))
+    const { error } = await supabase.from('recurring_task_completions').upsert({
+      employee_id: employeeId,
+      recurring_task_id: taskId,
+      date: dateStr,
+      completed: nextCompleted,
     })
+    if (error) setError(error.message)
   }
 
   const handleDelete = async (dateStr) => {
@@ -262,6 +306,7 @@ function App() {
     setEmployeeName(null)
     setOverridesByDate({})
     setRecurringTasks([])
+    setTaskCompletionsByKey({})
   }
 
   if (!isConfigured) {
@@ -312,7 +357,9 @@ function App() {
       {!loading && !recurringLoading && (
         <TodayTodo
           day={todayDayData}
-          onToggleComplete={handleToggleTodayComplete}
+          onToggleTask={(taskId, completed) =>
+            handleToggleTaskComplete(taskId, todayDayData.dateStr, completed)
+          }
           onEdit={() => setSelectedDay(todayDayData)}
         />
       )}

@@ -8,12 +8,14 @@ export function toDateStr(date) {
 // year: 4자리 연도, month: 0-11
 // holidaysByDate: { 'YYYY-MM-DD': '공휴일명' }
 // recurringByIndex: { 1: [{ id, title }], 2: [...] } - 매달 N번째 영업일마다 반복되는 업무
+// completionsByTaskDate: { '{recurring_task_id}_{YYYY-MM-DD}': true } - 반복 업무의 날짜별 완료 여부
 export function getMonthDays(
   year,
   month,
   overridesByDate = {},
   holidaysByDate = {},
   recurringByIndex = {},
+  completionsByTaskDate = {},
 ) {
   const days = []
   const firstDay = new Date(year, month, 1)
@@ -33,7 +35,12 @@ export function getMonthDays(
     const isBusinessDay = override === null ? autoBusinessDay : override
 
     const businessDayIndex = isBusinessDay ? ++businessDayCount : null
-    const recurringTasks = isBusinessDay ? (recurringByIndex[businessDayIndex] ?? []) : []
+    const recurringTasks = isBusinessDay
+      ? (recurringByIndex[businessDayIndex] ?? []).map((task) => ({
+          ...task,
+          completed: completionsByTaskDate[`${task.id}_${dateStr}`] ?? false,
+        }))
+      : []
 
     days.push({
       date,

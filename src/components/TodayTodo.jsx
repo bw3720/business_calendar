@@ -1,12 +1,9 @@
 const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
 
-export default function TodayTodo({ day, onToggleComplete, onEdit }) {
+export default function TodayTodo({ day, onToggleTask, onEdit }) {
   if (!day) return null
 
-  const items = [
-    ...day.recurringTasks.map((task) => ({ key: `r-${task.id}`, label: task.title })),
-    ...(day.memo ? [{ key: 'memo', label: day.memo }] : []),
-  ]
+  const hasItems = day.recurringTasks.length > 0 || Boolean(day.memo)
 
   return (
     <section className="today-todo" onClick={onEdit}>
@@ -26,28 +23,27 @@ export default function TodayTodo({ day, onToggleComplete, onEdit }) {
         </div>
       </div>
 
-      {items.length > 0 ? (
+      {hasItems ? (
         <ul className="today-todo-list">
-          {items.map((item) => (
-            <li key={item.key}>{item.label}</li>
+          {day.recurringTasks.map((task) => (
+            <li key={task.id} className={task.completed ? 'done' : ''}>
+              <span>{task.title}</span>
+              <label
+                className="today-todo-item-check"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <input
+                  type="checkbox"
+                  checked={task.completed}
+                  onChange={(e) => onToggleTask(task.id, e.target.checked)}
+                />
+              </label>
+            </li>
           ))}
+          {day.memo && <li className="today-todo-memo">{day.memo}</li>}
         </ul>
       ) : (
         <p className="today-todo-empty">오늘 등록된 업무가 없습니다.</p>
-      )}
-
-      {day.isBusinessDay && (
-        <label
-          className="today-todo-complete"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <input
-            type="checkbox"
-            checked={day.completed}
-            onChange={onToggleComplete}
-          />
-          산출 완료
-        </label>
       )}
     </section>
   )
