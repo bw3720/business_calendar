@@ -1,17 +1,14 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import Calendar from './components/Calendar'
 import DayEditor from './components/DayEditor'
 import Login from './components/Login'
 import TodayTodo from './components/TodayTodo'
 import { getMonthDays, toDateStr } from './lib/businessDays'
-import { getYearHolidays } from './lib/googleHolidays'
-import {
-  getStoredEmployeeId,
-  setStoredEmployeeId,
-  clearStoredEmployeeId,
-  verifyEmployeeId,
-} from './lib/employeeAuth'
-import { supabase } from './lib/supabaseClient'
+import { useMonthNav } from './hooks/useMonthNav'
+import { useEmployeeSession } from './hooks/useEmployeeSession'
+import { useDayStatus } from './hooks/useDayStatus'
+import { useHolidays } from './hooks/useHolidays'
+import { useRecurringTasks } from './hooks/useRecurringTasks'
 import './App.css'
 
 const isConfigured = Boolean(
@@ -19,294 +16,72 @@ const isConfigured = Boolean(
 )
 
 function App() {
-  const today = new Date()
+  const today = useMemo(() => new Date(), [])
   const todayStr = toDateStr(today)
-  const [year, setYear] = useState(today.getFullYear())
-  const [month, setMonth] = useState(today.getMonth())
-  const [employeeId, setEmployeeId] = useState(getStoredEmployeeId())
-  const [employeeName, setEmployeeName] = useState(null)
-  const [overridesByDate, setOverridesByDate] = useState({})
-  const [holidaysByDate, setHolidaysByDate] = useState({})
-  const [todayHolidaysByDate, setTodayHolidaysByDate] = useState({})
-  const [recurringTasks, setRecurringTasks] = useState([])
-  const [taskCompletionsByKey, setTaskCompletionsByKey] = useState({})
-  const [selectedDay, setSelectedDay] = useState(null)
-  const [loading, setLoading] = useState(isConfigured)
-  const [holidaysLoading, setHolidaysLoading] = useState(true)
-  const [recurringLoading, setRecurringLoading] = useState(isConfigured)
   const [error, setError] = useState(null)
+  const [selectedDay, setSelectedDay] = useState(null)
 
-  useEffect(() => {
-    if (!isConfigured || !employeeId || employeeName) return
-    let cancelled = false
-    verifyEmployeeId(employeeId).then((employee) => {
-      if (!cancelled && employee) setEmployeeName(employee.name)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [employeeId, employeeName])
-
-  useEffect(() => {
-    if (!isConfigured || !employeeId) return
-    let cancelled = false
-
-    async function load() {
-      setLoading(true)
-      try {
-        const { data, error } = await supabase
-          .from('day_status')
-          .select('*')
-          .eq('employee_id', employeeId)
-        if (cancelled) return
-        if (error) {
-          setError(error.message)
-        } else {
-          const map = {}
-          for (const row of data) {
-            map[row.date] = row
-          }
-          setOverridesByDate(map)
-        }
-      } catch (err) {
-        if (!cancelled) setError(err.message)
-      }
-      if (!cancelled) setLoading(false)
-    }
-
-    load()
-    return () => {
-      cancelled = true
-    }
-  }, [employeeId])
-
-  useEffect(() => {
-    let cancelled = false
-
-    async function loadHolidays() {
-      setHolidaysLoading(true)
-      try {
-        const map = await getYearHolidays(year)
-        if (!cancelled) setHolidaysByDate(map)
-      } catch (err) {
-        if (!cancelled) setError(err.message)
-      }
-      if (!cancelled) setHolidaysLoading(false)
-    }
-
-    loadHolidays()
-    return () => {
-      cancelled = true
-    }
-  }, [year])
-
-  useEffect(() => {
-    let cancelled = false
-
-    getYearHolidays(today.getFullYear())
-      .then((map) => {
-        if (!cancelled) setTodayHolidaysByDate(map)
-      })
-      .catch((err) => {
-        if (!cancelled) setError(err.message)
-      })
-
-    return () => {
-      cancelled = true
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  useEffect(() => {
-    if (!isConfigured || !employeeId) return
-    let cancelled = false
-
-    async function loadRecurring() {
-      setRecurringLoading(true)
-      try {
-        const { data, error } = await supabase
-          .from('recurring_tasks')
-          .select('*')
-          .eq('employee_id', employeeId)
-        if (cancelled) return
-        if (error) {
-          setError(error.message)
-        } else {
-          setRecurringTasks(data)
-        }
-      } catch (err) {
-        if (!cancelled) setError(err.message)
-      }
-      if (!cancelled) setRecurringLoading(false)
-    }
-
-    loadRecurring()
-    return () => {
-      cancelled = true
-    }
-  }, [employeeId])
-
-  useEffect(() => {
-    if (!isConfigured || !employeeId) return
-    let cancelled = false
-
-    async function loadTaskCompletions() {
-      try {
-        const { data, error } = await supabase
-          .from('recurring_task_completions')
-          .select('*')
-          .eq('employee_id', employeeId)
-        if (cancelled) return
-        if (error) {
-          setError(error.message)
-        } else {
-          const map = {}
-          for (const row of data) {
-            map[`${row.recurring_task_id}_${row.date}`] = row.completed
-          }
-          setTaskCompletionsByKey(map)
-        }
-      } catch (err) {
-        if (!cancelled) setError(err.message)
-      }
-    }
-
-    loadTaskCompletions()
-    return () => {
-      cancelled = true
-    }
-  }, [employeeId])
+  const { year, month, goPrevMonth, goNextMonth, goToday } = useMonthNav(today)
+  const { employeeId, employeeName, login, logout } = useEmployeeSession(isConfigured)
+  const dayStatus = useDayStatus(employeeId, isConfigured, setError)
+  const holidays = useHolidays(year, today, setError)
+  const recurring = useRecurringTasks(employeeId, isConfigured, setError)
 
   const recurringByIndex = useMemo(() => {
     const map = {}
-    for (const task of recurringTasks) {
+    for (const task of recurring.recurringTasks) {
       ;(map[task.nth_business_day] ??= []).push(task)
     }
     return map
-  }, [recurringTasks])
+  }, [recurring.recurringTasks])
 
   const days = useMemo(
     () =>
       getMonthDays(
         year,
         month,
-        overridesByDate,
-        holidaysByDate,
+        dayStatus.overridesByDate,
+        holidays.holidaysByDate,
         recurringByIndex,
-        taskCompletionsByKey,
+        recurring.taskCompletionsByKey,
       ),
-    [year, month, overridesByDate, holidaysByDate, recurringByIndex, taskCompletionsByKey],
+    [
+      year,
+      month,
+      dayStatus.overridesByDate,
+      holidays.holidaysByDate,
+      recurringByIndex,
+      recurring.taskCompletionsByKey,
+    ],
   )
 
   const todayDayData = useMemo(() => {
     const monthDays = getMonthDays(
       today.getFullYear(),
       today.getMonth(),
-      overridesByDate,
-      todayHolidaysByDate,
+      dayStatus.overridesByDate,
+      holidays.todayHolidaysByDate,
       recurringByIndex,
-      taskCompletionsByKey,
+      recurring.taskCompletionsByKey,
     )
     return monthDays.find((d) => d.dateStr === todayStr) ?? null
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [overridesByDate, todayHolidaysByDate, recurringByIndex, taskCompletionsByKey, todayStr])
+  }, [
+    today,
+    dayStatus.overridesByDate,
+    holidays.todayHolidaysByDate,
+    recurringByIndex,
+    recurring.taskCompletionsByKey,
+    todayStr,
+  ])
 
   const selectedRecurringTasks = selectedDay
     ? (recurringByIndex[selectedDay.businessDayIndex] ?? [])
     : []
 
-  const goPrevMonth = () => {
-    if (month === 0) {
-      setYear((y) => y - 1)
-      setMonth(11)
-    } else {
-      setMonth((m) => m - 1)
-    }
-  }
-
-  const goNextMonth = () => {
-    if (month === 11) {
-      setYear((y) => y + 1)
-      setMonth(0)
-    } else {
-      setMonth((m) => m + 1)
-    }
-  }
-
-  const goToday = () => {
-    setYear(today.getFullYear())
-    setMonth(today.getMonth())
-  }
-
-  const handleSave = async (dateStr, { override, completed, memo }) => {
-    const row = { employee_id: employeeId, date: dateStr, override, completed, memo }
-    setOverridesByDate((prev) => ({ ...prev, [dateStr]: row }))
-    const { error } = await supabase.from('day_status').upsert(row)
-    if (error) setError(error.message)
-  }
-
-  const handleToggleTaskComplete = async (taskId, dateStr, nextCompleted) => {
-    const key = `${taskId}_${dateStr}`
-    setTaskCompletionsByKey((prev) => ({ ...prev, [key]: nextCompleted }))
-    const { error } = await supabase.from('recurring_task_completions').upsert({
-      employee_id: employeeId,
-      recurring_task_id: taskId,
-      date: dateStr,
-      completed: nextCompleted,
-    })
-    if (error) setError(error.message)
-  }
-
-  const handleDelete = async (dateStr) => {
-    setOverridesByDate((prev) => {
-      const next = { ...prev }
-      delete next[dateStr]
-      return next
-    })
-    const { error } = await supabase
-      .from('day_status')
-      .delete()
-      .eq('employee_id', employeeId)
-      .eq('date', dateStr)
-    if (error) setError(error.message)
-  }
-
-  const handleAddRecurring = async (nthBusinessDay, title) => {
-    const { data, error } = await supabase
-      .from('recurring_tasks')
-      .insert({ employee_id: employeeId, nth_business_day: nthBusinessDay, title })
-      .select()
-      .single()
-    if (error) {
-      setError(error.message)
-      return
-    }
-    setRecurringTasks((prev) => [...prev, data])
-  }
-
-  const handleDeleteRecurring = async (id) => {
-    setRecurringTasks((prev) => prev.filter((task) => task.id !== id))
-    const { error } = await supabase
-      .from('recurring_tasks')
-      .delete()
-      .eq('employee_id', employeeId)
-      .eq('id', id)
-    if (error) setError(error.message)
-  }
-
-  const handleLogin = (id, name) => {
-    setStoredEmployeeId(id)
-    setEmployeeId(id)
-    setEmployeeName(name)
-  }
-
   const handleLogout = () => {
-    clearStoredEmployeeId()
-    setEmployeeId(null)
-    setEmployeeName(null)
-    setOverridesByDate({})
-    setRecurringTasks([])
-    setTaskCompletionsByKey({})
+    logout()
+    dayStatus.reset()
+    recurring.reset()
   }
 
   if (!isConfigured) {
@@ -327,7 +102,7 @@ function App() {
   }
 
   if (!employeeId) {
-    return <Login onLogin={handleLogin} />
+    return <Login onLogin={login} />
   }
 
   return (
@@ -354,18 +129,18 @@ function App() {
 
       {error && <p className="error-banner">오류: {error}</p>}
 
-      {!loading && !recurringLoading && (
+      {!dayStatus.loading && !recurring.recurringLoading && (
         <TodayTodo
           day={todayDayData}
           onToggleTask={(taskId, completed) =>
-            handleToggleTaskComplete(taskId, todayDayData.dateStr, completed)
+            recurring.toggleCompletion(taskId, todayDayData.dateStr, completed)
           }
           onEdit={() => setSelectedDay(todayDayData)}
         />
       )}
 
       <div className="calendar-area">
-        {loading || holidaysLoading || recurringLoading ? (
+        {dayStatus.loading || holidays.holidaysLoading || recurring.recurringLoading ? (
           <p className="loading">불러오는 중...</p>
         ) : (
           <Calendar
@@ -383,10 +158,10 @@ function App() {
           day={selectedDay}
           recurringTasks={selectedRecurringTasks}
           onClose={() => setSelectedDay(null)}
-          onSave={handleSave}
-          onDelete={handleDelete}
-          onAddRecurring={handleAddRecurring}
-          onDeleteRecurring={handleDeleteRecurring}
+          onSave={dayStatus.save}
+          onDelete={dayStatus.remove}
+          onAddRecurring={recurring.addTask}
+          onDeleteRecurring={recurring.deleteTask}
         />
       )}
     </div>

@@ -2,6 +2,11 @@
 
 이 프로젝트의 주요 변경 사항을 날짜순으로 기록합니다.
 
+## 2026-09-08
+
+- `App.jsx`(396줄)에 몰려 있던 데이터 로딩/저장 로직을 역할별 커스텀 훅으로 분리: `useMonthNav`, `useEmployeeSession`, `useDayStatus`, `useHolidays`, `useRecurringTasks` (`src/hooks/`). 동작 변경 없이 App.jsx를 171줄로 축소해 가독성 개선
+- 코드에서 참조되지 않는 Vite 템플릿 기본 이미지(`src/assets/react.svg`, `src/assets/vite.svg`) 삭제
+
 ## 2026-09-07
 
 - "오늘의 할 일" 카드에서 하단 "산출 완료" 체크박스 하나 대신, 반복 업무 항목마다 우측에 개별 체크박스를 붙임 (`TodayTodo.jsx`, `App.jsx`, `App.css`). 완료 체크 시 해당 항목에 취소선 표시
